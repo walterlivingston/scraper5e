@@ -29,7 +29,7 @@ Python **3.12 or greater** is required.
 1. Clone ***scraper5e***.
 
 ```shell
-git clone -b python https://github.com/walterlivingston/scraper5e.git
+git clone https://github.com/walterlivingston/scraper5e.git
 ```
 
 2. Install w/ pip
