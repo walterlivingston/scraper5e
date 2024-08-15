@@ -5,8 +5,8 @@ from .browser import *
 
 def scrape_races(filename:str='races.json'):
     # Check for Data Files
-    if os.path.exists("races.json"):
-        os.remove("races.json")
+    if os.path.exists(filename):
+        os.remove(filename)
 
     # Browser Setup
     url = 'https://5etools.com/races.html'
@@ -49,7 +49,7 @@ def scrape_races(filename:str='races.json'):
 
         data.append(race_dict)
 
-    with open("races.json", "w") as f:
+    with open(filename, "w") as f:
         json.dump(data, f)
                 
     # Quit Browser
