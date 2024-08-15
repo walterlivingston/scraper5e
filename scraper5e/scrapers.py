@@ -3,10 +3,13 @@ import json, os
 
 from .browser import *
 
-def start_scrape(scraping:str, class_:str):
+def start_scrape(scraping:str, class_:str, path:str=''):
     # Check for Data Files
-    if os.path.exists(scraping+'.json'):
-        os.remove(scraping+'.json')
+    if path and not os.path.exists(path):
+        os.mkdir(path)
+
+    if os.path.exists(path+scraping+'.json'):
+        os.remove(path+scraping+'.json')
 
     # Browser Setup
     url = 'https://5etools.com/'+scraping+'.html'
@@ -15,13 +18,15 @@ def start_scrape(scraping:str, class_:str):
 
     return driver, url
 
-def scrape_classes():
-    driver, url = start_scrape('classes', 'list list--stats classes cls__list')
+def scrape_classes(path:str = ''):
+    # Start Scraping
+    driver, url = start_scrape('classes', 'list list--stats classes cls__list', path)
 
     # Source Parsing
     soup = BeautifulSoup(driver.page_source, 'html.parser')
     classes = soup.find_all('li', class_='lst__row ve-flex-col')
 
+    # Parsing of Class Data
     data = []
     for obj in classes:
         class_dict = {}
@@ -31,7 +36,6 @@ def scrape_classes():
         class_dict['name'] = name.text
 
         tr = stats.find_all('tr')
-
         for item in tr:
             sect = item.find('h5', class_='cls-side__section-head')
             null_div = item.find_all('div', class_='')
@@ -66,15 +70,16 @@ def scrape_classes():
                         gp = div.find('span', {'title':'Starting Gold. Click to roll. SHIFT/CTRL to roll twice.'})
                         class_dict[sect.text]['Equipment:'] = e_vals
                         class_dict[sect.text]['Alternate:'] = gp.text + 'gp'
-                        
-        spell_tbl = new_soup.find('table', class_='cls-tbl shadow-big w-100 mb-2')
-        tr = spell_tbl.find_all('tr', class_='')
+        
+        # Parse Level Table
+        level_tbl = new_soup.find('table', class_='cls-tbl shadow-big w-100 mb-2')
+        tr = level_tbl.find_all('tr', class_='')
         th = tr[-2].find_all('th')
         columns = []
         for item in th:
             columns.append(item.text)
         columns = columns[1:]
-        levels = spell_tbl.find_all('tr', class_='cls-tbl__stripe-odd')
+        levels = level_tbl.find_all('tr', class_='cls-tbl__stripe-odd')
         class_dict['Levels'] = {}
         for item in levels:
             level = item.find('td', class_='cls-tbl__col-level')
@@ -89,21 +94,14 @@ def scrape_classes():
         sub_url = obj.find_all('a', href=True)[-1]['href']
         check_page_loaded(driver, (url + sub_url), 'lst__row ve-flex-col', 0)
 
-    with open('classes.json', "w") as f:
+    with open(path+'classes.json', "w") as f:
         json.dump(data, f)
 
     driver.quit()
 
-def scrape_races():
-    # # Check for Data Files
-    # if os.path.exists(filename):
-    #     os.remove(filename)
-
-    # # Browser Setup
-    # url = 'https://5etools.com/races.html'
-    # driver = start_driver(url)
-    # check_page_loaded(driver, url, 'lst__row ve-flex-col')
-    driver, url = start_scrape('races', 'lst__row ve-flex-col')
+def scrape_races(path:str=''):
+    # Start Scraping
+    driver, url = start_scrape('races', 'lst__row ve-flex-col', path)
 
     # Source Parsing
     soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -123,11 +121,14 @@ def scrape_races():
             b = item.find('b')
             more_flag = item.find('div', class_='rd__b rd__b--3') is not None
 
+            # Race Name
             if name is not None:
                 race_dict['name'] = name.text
+            # Core Details
             if td is not None and b is not None:
                 details = td.text.replace(b.text,'')
                 race_dict[b.text] = details
+            # Other Details
             if more_flag:
                 sub_data = item.find_all('div', class_='rd__b rd__b--3')
                 for d in sub_data:
@@ -141,7 +142,7 @@ def scrape_races():
         sub_url = obj.find_all('a', href=True)[-1]['href']
         check_page_loaded(driver, (url + sub_url), 'lst__row ve-flex-col', 0)
 
-    with open('races.json', "w") as f:
+    with open(path+'races.json', "w") as f:
         json.dump(data, f)
                 
     # Quit Browser
