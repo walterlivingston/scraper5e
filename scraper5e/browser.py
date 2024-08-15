@@ -17,9 +17,11 @@ def start_driver(url: str):
 
     return driver
 
-def check_page_loaded(driver, url:str, class_:str, wait_amt:int = 1):
+def check_page_loaded(driver, url:str, class_:str, wait_amt:int = 1, num_attempts:int = 5):
     pageNotLoaded= bool(True)
-    while pageNotLoaded:
+    attempts = 1
+    while pageNotLoaded and attempts <= num_attempts:
+        attempts += 1
         pageNotLoaded= False
         try:
             driver.get(url)
@@ -34,3 +36,6 @@ def check_page_loaded(driver, url:str, class_:str, wait_amt:int = 1):
             driver.find_elements(By.CLASS_NAME, class_)
         except NoSuchElementException:
             pageNotLoaded = True
+            
+    if attempts > num_attempts:
+        Warning('Did not load element within the number of attempts')

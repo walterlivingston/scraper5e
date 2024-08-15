@@ -3,15 +3,107 @@ import json, os
 
 from .browser import *
 
-def scrape_races(filename:str='races.json'):
+def start_scrape(scraping:str, class_:str):
     # Check for Data Files
-    if os.path.exists(filename):
-        os.remove(filename)
+    if os.path.exists(scraping+'.json'):
+        os.remove(scraping+'.json')
 
     # Browser Setup
-    url = 'https://5etools.com/races.html'
+    url = 'https://5etools.com/'+scraping+'.html'
     driver = start_driver(url)
-    check_page_loaded(driver, url, 'lst__row ve-flex-col')
+    check_page_loaded(driver, url, class_)
+
+    return driver, url
+
+def scrape_classes():
+    driver, url = start_scrape('classes', 'list list--stats classes cls__list')
+
+    # Source Parsing
+    soup = BeautifulSoup(driver.page_source, 'html.parser')
+    classes = soup.find_all('li', class_='lst__row ve-flex-col')
+
+    data = []
+    for obj in classes:
+        class_dict = {}
+        new_soup = BeautifulSoup(driver.page_source, 'html.parser')
+        stats = new_soup.find('div', id='statsprof')
+        name = stats.find('div', class_='cls-side__name')
+        class_dict['name'] = name.text
+
+        tr = stats.find_all('tr')
+
+        for item in tr:
+            sect = item.find('h5', class_='cls-side__section-head')
+            null_div = item.find_all('div', class_='')
+            if sect is not None:
+                class_dict[sect.text] = {}
+                for div in null_div:
+                    b = div.find('b')
+                    st = div.find('strong')
+                    p = div.find('p')
+                    # Multiclassing
+                    if b is not None and p is not None:
+                        mc_reqs = item.find('div', class_='cls-side__mc-prof-intro--requirements')
+                        details = div.text.replace(b.text,'')
+                        class_dict[sect.text][b.text] = details
+                        if mc_reqs is not None:
+                            class_dict[sect.text]['Requirements:'] = mc_reqs.text
+                            
+                    # Proficiencies
+                    elif b is not None:
+                        details = div.text.replace(b.text,'')
+                        class_dict[sect.text][b.text] = details
+                    # Hit Points
+                    elif st is not None:
+                        details = div.text.replace(st.text,'')
+                        class_dict[sect.text][st.text] = details
+                    # Starting Equipment
+                    else:
+                        eqmt = div.find_all('li')
+                        e_vals = []
+                        for e in eqmt:
+                            e_vals.append(e.text)
+                        gp = div.find('span', {'title':'Starting Gold. Click to roll. SHIFT/CTRL to roll twice.'})
+                        class_dict[sect.text]['Equipment:'] = e_vals
+                        class_dict[sect.text]['Alternate:'] = gp.text + 'gp'
+                        
+        spell_tbl = new_soup.find('table', class_='cls-tbl shadow-big w-100 mb-2')
+        tr = spell_tbl.find_all('tr', class_='')
+        th = tr[-2].find_all('th')
+        columns = []
+        for item in th:
+            columns.append(item.text)
+        columns = columns[1:]
+        levels = spell_tbl.find_all('tr', class_='cls-tbl__stripe-odd')
+        class_dict['Levels'] = {}
+        for item in levels:
+            level = item.find('td', class_='cls-tbl__col-level')
+            class_dict['Levels'][level.text] = {}
+            vals = item.find_all('td')
+            vals = vals[1:]
+            for i, val in enumerate(vals):
+                class_dict['Levels'][level.text][columns[i]] = val.text
+
+        data.append(class_dict)
+        
+        sub_url = obj.find_all('a', href=True)[-1]['href']
+        check_page_loaded(driver, (url + sub_url), 'lst__row ve-flex-col', 0)
+
+    with open('classes.json', "w") as f:
+        json.dump(data, f)
+
+    driver.quit()
+
+def scrape_races():
+    # # Check for Data Files
+    # if os.path.exists(filename):
+    #     os.remove(filename)
+
+    # # Browser Setup
+    # url = 'https://5etools.com/races.html'
+    # driver = start_driver(url)
+    # check_page_loaded(driver, url, 'lst__row ve-flex-col')
+    driver, url = start_scrape('races', 'lst__row ve-flex-col')
 
     # Source Parsing
     soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -20,9 +112,6 @@ def scrape_races(filename:str='races.json'):
     # Parsing of Race Data
     data = []
     for obj in races:
-        sub_url = obj.find_all('a', href=True)[-1]['href']
-        check_page_loaded(driver, (url + sub_url), 'lst__row ve-flex-col', 0)
-
         new_soup = BeautifulSoup(driver.page_source, 'html.parser')
         stats = new_soup.find('div', id="wrp-pagecontent")
         table = stats.find('table', id='pagecontent')
@@ -48,8 +137,11 @@ def scrape_races(filename:str='races.json'):
                         race_dict[attr_title.text] = p.text
 
         data.append(race_dict)
+        
+        sub_url = obj.find_all('a', href=True)[-1]['href']
+        check_page_loaded(driver, (url + sub_url), 'lst__row ve-flex-col', 0)
 
-    with open(filename, "w") as f:
+    with open('races.json', "w") as f:
         json.dump(data, f)
                 
     # Quit Browser
