@@ -9,6 +9,6 @@
 
 ---
 
-<p align="center"> A web scraper for 5e.tools written in Python.
+<p align="center"> A web scraper for <a href="https://5e.tools/">5e.tools</a> written in Python.
     <br> 
 </p>
