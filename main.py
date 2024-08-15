@@ -1,11 +1,11 @@
 from bs4 import BeautifulSoup
 
-import scraper5e as scp
+import scraper5e as s5
 
 # Browser Setup
 url = 'https://5etools.com/races.html'
-driver = scp.start_driver(url)
-scp.check_page_loaded(driver, url, 'lst__row ve-flex-col')
+driver = s5.start_driver(url)
+s5.check_page_loaded(driver, url, 'lst__row ve-flex-col')
 
 # Source Parsing
 soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -17,7 +17,7 @@ races = soup.find_all('div', class_='lst__row ve-flex-col')
 # Parsing of Race Data
 for obj in races:
     sub_url = obj.find_all('a', href=True)[-1]['href']
-    scp.check_page_loaded(driver, url+sub_url, 'lst__row ve-flex-col', 0)
+    s5.check_page_loaded(driver, url+sub_url, 'lst__row ve-flex-col', 0)
 
     soup_race = BeautifulSoup(driver.page_source, 'html.parser')
     stats = soup_race.find('div', id="wrp-pagecontent")
