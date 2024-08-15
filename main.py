@@ -11,6 +11,7 @@ s5.check_page_loaded(driver, url, 'lst__row ve-flex-col')
 soup = BeautifulSoup(driver.page_source, 'html.parser')
 races = soup.find_all('div', class_='lst__row ve-flex-col')
 
+# Check for Data Files
 # if os.path.exists("races.json"):
 #     os.remove("races.json")
 
@@ -24,6 +25,8 @@ for obj in races:
     table = stats.find('table', id='pagecontent')
     tr = table.find_all('tr')
     for t in tr:
+        # (TODO) Create logic for determining which segment is being processed
+        # (TODO) Save to JSON
         name = t.find('h1', class_='stats-name copyable m-0')
         td = t.find('td')
         b = t.find('b')
